@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<title>Live Streaming</title>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.2/p5.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.2/addons/p5.dom.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.0/jquery.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.3/semantic.min.css"></script>
+	<style>
+		img{
+			width: 320px;
+			height: 240px;
+      margin-left: 30px;
+		}
+    #defaultCanvas0{
+      width: 320px;
+      height: 240px;
+      margin-left: 200px;
+      margin-top: 15px;
+    }
+
+
+
+	</style>
+</head>
+<body>
+  <!-- 5 divs that need to be appended with video each time a new person comes on.  -->
+
+  <div id="users">
+
+  </div>
+<!-- 5 divs that need to be appended with video for each person. -->
+
+  <script>
+  //Connects the sockets together.
+		var socket = io.connect('http://' + document.domain + ':'+ location.port);
+//Video Variable.
+    var video;
+//ID variable.
+		var id;
+
+//--createUsers is when a new user comes in. This is what will happen.
+		socket.on('createUsers', function(usr){
+    // So when a new user comes in, you remove the image tag.
+    	$('img').remove();
+
+  $( "#defaultCanvas0" ).replaceWith('<h1>Welcome, press join to start </h1> <br> <button id="join">Join</button>' );
+
+
+  //Loop that loops the usr array.
+  		$.each(usr, function(index, value) {
+
+  if (value != id) {
+
+      if(usr.length < 5){
+
+
+      //Appends the video, like some kind of array.
+      $('#users').append('<img id=' + value + ' >');
+
+
+      }
+    }
+ });
+
+if(usr.length === 4){
+  $('#defaultCanvas0').replaceWith('<br> <br> <button href="" style="margin-left : 30px;">Exit</button>');
+
+}
+
+
+
+
+});
+
+  	socket.on('myId', function(myId){
+
+    	id = myId;
+
+
+
+    });
+
+  //Update Image will only take place if the frameRate gets higher than 55 for the videos. And instead of having a video, it will get updated with an image.
+		socket.on('updateImage', function(data){
+
+//data.captura comes from the bottom, from function draw(). captura = c.canvas.toDataURL(). c = createCanvas(320,240).
+      $('img[id=' + data.id + ']').attr('src', data.captura )
+
+    });
+
+//=================================================================
+		var points = [];
+
+    //The whole video setup that you will have.
+    function setup() {
+      //Canvas to be displayed.
+			c = createCanvas(320, 240);
+      //Type of capture.(Like video, camera ,etc. )
+			video = createCapture(VIDEO);
+      //Size of the video.
+			video.size(320, 240);
+      //If you can hide the video and shit like that.
+			video.hide();
+			noStroke();
+		}
+
+    //The whole drawing functionality.
+		function draw(){
+			image(video, 0, 0, 320, 240);
+
+    //If mouse is pressed you push, points x, and y into the points array.
+  		if (mouseIsPressed){
+				points.push({x:mouseX, y:mouseY})
+			}
+  //The fill would be red.
+  		fill("red");
+//You have a loop over the points array, and you put an elipse the size of 5.5 for each one.
+      $.each(points, function(index, val) {
+				ellipse(val.x, val.y, 5,5);
+			});
+
+      //This is the capture of the image if the frameRate() is greater than 55, then put the image of the person, and leave it.
+			if (frameRate() > 55  && id != null) {
+				socket.emit('updateImage',{id : id , captura: c.canvas.toDataURL()});
+			}
+		}
+
+    //You can add semantic ui styling classes to all of your buttons.
+    //$('a').addClass('ui button');
+	</script>
+</body>
+</html>
